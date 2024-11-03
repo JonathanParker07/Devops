@@ -1,0 +1,48 @@
+version: "3"
+
+services:
+  # Database (PostgreSQL)
+  jona-db:
+    image: "postgres:17.0"
+    container_name: jona-db
+    ports:
+      - 5436:5432
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    env_file:
+      - ./db.env
+
+  # Backend (Express.js API)
+  jona-food-api:
+    build: ../api
+    image: jona-food-api
+    container_name: api
+    command: /bin/sh -c 'yarn prisma migrate deploy && yarn devStart'
+    depends_on:
+      - jona-db
+    ports:
+      - 8010:8000
+    env_file:
+      - ../api/.env
+    volumes:
+      - ../api/src:/app/src
+      - ../api/prisma:/app/prisma
+      - ../api/package.json:/app/package.json
+      - ../api/yarn.lock:/app/yarn.lock
+      - ../api/tsconfig.json:/app/ts-config.json
+
+  # Frontend (React JS Web App)
+  jona-food-app:
+    build: ../frontend
+    image: jona-food-app
+    container_name: frontend
+    command: /bin/sh -c 'yarn start'
+    ports:
+      - 3010:3000
+    env_file:
+      - ../frontend/.env
+    volumes:
+      - ../frontend/src:/app/src
+      - ../frontend/package.json:/app/package.json
+      - ../frontend/public:/app/public
